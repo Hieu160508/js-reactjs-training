@@ -1,3 +1,5 @@
+// BUOI 2
+
 //console.log(1 + "1");
 //console.log("5" - 2);
 //console.log(true + true);       //Khi gap 2 boolean => true = 1, false = 0 => true + true = 1 + 1 = 2
