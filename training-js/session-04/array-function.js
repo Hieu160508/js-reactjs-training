@@ -48,7 +48,6 @@ const orders = [
 
 ////Output mong đợi:
 
-js
 
 // {
 //   totalRevenue: 4457500,
@@ -56,3 +55,73 @@ js
 //   topCustomer: { name: "An", spent: 3127500 },
 //   bestSeller:  { sku: "E5", name: "Bút", qty: 10 }
 // }
+
+function analyze(orders) {
+  const completed = orders.filter(o => o.status === "completed");
+  // console.log(completed); // Loc don da hoan thanh
+
+  const enrichedOrders = completed.map(order => {
+    const subtotal = order.items.reduce(
+      (sum, item) => sum + item.price * item.qty, 0 
+    );  // Tinh subtotal cua don hang
+
+    const discountRate = 
+      subtotal >= 2_000_000 ? 0.1 :
+      subtotal >= 1_000_000 ? 0.05 : 0; // Xac dinh muc giam gia theo subtotal
+      
+    const total = subtotal * (1 - discountRate);  // Tinh total sau khi giam gia
+
+    return { ...order, subtotal, total };
+
+  });
+  // console.log(enrichedOrders); 
+
+  const totalRevenue = enrichedOrders.reduce((sum, order) => sum + order.total, 0); // Tinh tong doanh thu
+  // console.log(totalRevenue);
+
+  const allItems = enrichedOrders.reduce((acc, order) => [...acc, ...order.items], []);
+  // console.log(allItems); // Gop tat ca cac item trong cac don hang
+
+  const byCategory = allItems.reduce((acc, item) => {
+    const amount = item.price * item.qty;
+    return { ...acc, [item.category]: (acc[item.category] || 0) + amount };
+  } , {});
+  // console.log(byCategory); // Tinh tong tien theo category
+
+  const statsBySku = allItems.reduce((acc, item) => {
+    const prev = acc[item.sku] || { sku: item.sku, name: item.name, qty: 0, revenue: 0 };
+    return {
+      ...acc,
+      [item.sku]: {
+        ...prev,
+        qty: prev.qty + item.qty,
+        revenue: prev.revenue + item.price * item.qty
+      }
+    };
+  }, {});
+  // console.log(statsBySku); // Thong ke theo sku
+  
+  const bestSellerFull = Object.values(statsBySku).reduce((best, curr) => {
+    if (!best) return curr;
+    if (curr.qty > best.qty) return curr;
+    if (curr.qty === best.qty && curr.revenue > best.revenue) return curr;
+    return best;
+  }, null);
+  const bestSeller = { sku: bestSellerFull.sku, name: bestSellerFull.name, qty: bestSellerFull.qty };
+  // console.log(bestSeller); // Tim best seller theo quy tac
+
+  const spentByCustomer = enrichedOrders.reduce((acc, order) => {
+    return { ...acc, [order.customer]: (acc[order.customer] || 0) + order.total };
+  }, {});
+  // console.log(spentByCustomer); // Tinh tong tien da chi cua tung khach hang
+
+  const topCustomer = Object.entries(spentByCustomer).reduce((top, [name, spent]) => {
+    if (!top || spent > top.spent) return { name, spent };
+    return top;
+  }, null);
+  // console.log(topCustomer); // Tim khach hang chi tieu nhieu nhat
+
+  return { totalRevenue, byCategory, topCustomer, bestSeller };
+
+}
+console.log(analyze(orders)); // Goi ham analyze va in ra ket qua
